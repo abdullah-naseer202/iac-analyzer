@@ -1,0 +1,10 @@
+- name: Insecure demo playbook
+  hosts: all
+  vars:
+    db_password: "Admin12345"
+  tasks:
+    - name: Create config file
+      ansible.builtin.file:
+        path: /etc/app/config.conf
+        state: touch
+        mode: "0777"
