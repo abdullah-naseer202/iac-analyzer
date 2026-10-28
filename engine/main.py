@@ -5,6 +5,8 @@ from pathlib import Path
 from fastapi import FastAPI, File, HTTPException, UploadFile
 
 from iac_parser import parse_file
+from risk import calculate_risk
+from remediation import add_remediation
 from scanner import scan
 
 app = FastAPI(title="IaC Analyzer Engine")
@@ -45,11 +47,12 @@ async def parse(file: UploadFile = File(...)):
 @app.post("/scan")
 async def scan_file(file: UploadFile = File(...)):
     parsed = await _parse_upload(file)
-    findings = scan(parsed)
+    findings = add_remediation(scan(parsed))
     counts = Counter(f["severity"] for f in findings)
     return {
         "file": parsed["file"],
         "type": parsed["type"],
+        "risk": calculate_risk(findings),
         "summary": {
             "total": len(findings),
             "high": counts.get("HIGH", 0),
