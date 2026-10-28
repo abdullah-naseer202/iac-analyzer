@@ -1,22 +1,18 @@
 import tempfile
+from collections import Counter
 from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 
 from iac_parser import parse_file
+from scanner import scan
 
 app = FastAPI(title="IaC Analyzer Engine")
 
 ALLOWED_SUFFIXES = {".tf", ".yaml", ".yml"}
 
 
-@app.get("/health")
-def health():
-    return {"status": "ok"}
-
-
-@app.post("/parse")
-async def parse(file: UploadFile = File(...)):
+async def _parse_upload(file: UploadFile):
     name = Path(file.filename).name
     if Path(name).suffix.lower() not in ALLOWED_SUFFIXES:
         raise HTTPException(
@@ -34,3 +30,31 @@ async def parse(file: UploadFile = File(...)):
             raise HTTPException(
                 status_code=422, detail=f"Could not parse file: {exc}"
             )
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
+@app.post("/parse")
+async def parse(file: UploadFile = File(...)):
+    return await _parse_upload(file)
+
+
+@app.post("/scan")
+async def scan_file(file: UploadFile = File(...)):
+    parsed = await _parse_upload(file)
+    findings = scan(parsed)
+    counts = Counter(f["severity"] for f in findings)
+    return {
+        "file": parsed["file"],
+        "type": parsed["type"],
+        "summary": {
+            "total": len(findings),
+            "high": counts.get("HIGH", 0),
+            "medium": counts.get("MEDIUM", 0),
+            "low": counts.get("LOW", 0),
+        },
+        "findings": findings,
+    }
