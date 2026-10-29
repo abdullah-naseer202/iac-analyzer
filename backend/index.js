@@ -2,10 +2,14 @@ const express = require("express");
 const multer = require("multer");
 const cors = require("cors");
 const path = require("path");
+const mongoose = require("mongoose");
+const Scan = require("./models");
 
 const app = express();
 const PORT = 3000;
 const ENGINE_URL = process.env.ENGINE_URL || "http://127.0.0.1:8000";
+const MONGO_URL =
+  process.env.MONGO_URL || "mongodb://127.0.0.1:27017/iac_analyzer";
 const ALLOWED = new Set([".tf", ".yaml", ".yml"]);
 
 app.use(cors());
@@ -41,11 +45,41 @@ app.post("/api/scan", upload.single("file"), async (req, res) => {
       body: form,
     });
     const data = await engineRes.json();
+
+    if (engineRes.ok) {
+      try {
+        const saved = await Scan.create(data);
+        data.id = saved._id;
+      } catch (dbErr) {
+        console.error("Could not save scan:", dbErr.message);
+      }
+    }
     return res.status(engineRes.status).json(data);
   } catch (err) {
     return res
       .status(502)
       .json({ error: "Engine is not reachable", detail: err.message });
+  }
+});
+
+app.get("/api/scans", async (req, res) => {
+  try {
+    const scans = await Scan.find({}, "file type risk summary createdAt")
+      .sort({ createdAt: -1 })
+      .limit(50);
+    res.json(scans);
+  } catch (err) {
+    res.status(500).json({ error: "Could not read history" });
+  }
+});
+
+app.get("/api/scans/:id", async (req, res) => {
+  try {
+    const scan = await Scan.findById(req.params.id);
+    if (!scan) return res.status(404).json({ error: "Scan not found" });
+    res.json(scan);
+  } catch (err) {
+    res.status(400).json({ error: "Invalid scan id" });
   }
 });
 
@@ -57,6 +91,15 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: "Internal server error" });
 });
 
-app.listen(PORT, () => {
-  console.log(`Backend running on http://localhost:${PORT}`);
-});
+mongoose
+  .connect(MONGO_URL)
+  .then(() => {
+    console.log("MongoDB connected");
+    app.listen(PORT, () => {
+      console.log(`Backend running on http://localhost:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("MongoDB connection failed:", err.message);
+    process.exit(1);
+  });
