@@ -4,6 +4,7 @@ const cors = require("cors");
 const path = require("path");
 const mongoose = require("mongoose");
 const Scan = require("./models");
+const { uploadReport } = require("./s3");
 
 const app = express();
 const PORT = 3000;
@@ -50,6 +51,16 @@ app.post("/api/scan", upload.single("file"), async (req, res) => {
       try {
         const saved = await Scan.create(data);
         data.id = saved._id;
+
+        // Report ko S3 par bhi save karo (fail ho to scan phir bhi return hoga)
+        try {
+          const key = await uploadReport(saved._id, data);
+          saved.reportKey = key;
+          await saved.save();
+          data.reportKey = key;
+        } catch (s3Err) {
+          console.error("Could not upload report to S3:", s3Err.message);
+        }
       } catch (dbErr) {
         console.error("Could not save scan:", dbErr.message);
       }
@@ -64,7 +75,10 @@ app.post("/api/scan", upload.single("file"), async (req, res) => {
 
 app.get("/api/scans", async (req, res) => {
   try {
-    const scans = await Scan.find({}, "file type risk summary createdAt")
+    const scans = await Scan.find(
+      {},
+      "file type risk summary reportKey createdAt"
+    )
       .sort({ createdAt: -1 })
       .limit(50);
     res.json(scans);

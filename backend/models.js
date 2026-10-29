@@ -15,6 +15,7 @@ const scanSchema = new mongoose.Schema(
       low: Number,
     },
     findings: [mongoose.Schema.Types.Mixed],
+        reportKey: String,
   },
   { timestamps: true }
 );
