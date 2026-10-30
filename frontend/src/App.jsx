@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ResultView from "./ResultView";
 
 const API = "http://localhost:3000";
 
@@ -24,7 +25,7 @@ export default function App() {
       } else {
         setResult(data);
       }
-    } catch (err) {
+    } catch {
       setError("Backend se connect nahi ho saka. Kya backend chal raha hai?");
     } finally {
       setLoading(false);
@@ -63,11 +64,7 @@ export default function App() {
           </div>
         )}
 
-        {result && (
-          <pre className="mt-6 overflow-auto rounded-xl bg-slate-950 p-4 text-xs text-emerald-300">
-            {JSON.stringify(result, null, 2)}
-          </pre>
-        )}
+        {result && <ResultView result={result} />}
       </div>
     </div>
   );
