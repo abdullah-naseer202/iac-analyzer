@@ -1,5 +1,6 @@
 import { useState } from "react";
 import ResultView from "./ResultView";
+import History from "./History";
 
 const API = "http://localhost:3000";
 
@@ -8,6 +9,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
+  const [historyKey, setHistoryKey] = useState(0);
 
   async function handleScan() {
     if (!file) return;
@@ -24,11 +26,28 @@ export default function App() {
         setError(data.error || "Scan failed");
       } else {
         setResult(data);
+        setHistoryKey((k) => k + 1);
       }
     } catch {
       setError("Backend se connect nahi ho saka. Kya backend chal raha hai?");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function openScan(id) {
+    setError("");
+    try {
+      const res = await fetch(`${API}/api/scans/${id}`);
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Scan load nahi ho saka");
+        return;
+      }
+      setResult(data);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch {
+      setError("Backend se connect nahi ho saka.");
     }
   }
 
@@ -65,6 +84,8 @@ export default function App() {
         )}
 
         {result && <ResultView result={result} />}
+
+        <History refreshKey={historyKey} onSelect={openScan} />
       </div>
     </div>
   );
