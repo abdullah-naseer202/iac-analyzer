@@ -32,8 +32,7 @@ tools/      Helper scripts
 
 ## Screenshots
 
-![Dashboard](./screenshots/dashboard.png)
-![Scan result](./screenshots/scan-result.png)
+C:\Users\pytho\OneDrive\Pictures
 
 ## Getting Started
 
@@ -73,4 +72,4 @@ Progress is tracked on the GitHub Project board of this repository.
 ## Author
 
 **Abdullah Naseer**, BS IT Student, GCUF
-[LinkedIn](https://linkedin.com/in/your-id) | pythonprogram33@gmail.com
+  pythonprogram33@gmail.com
